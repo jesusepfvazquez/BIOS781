@@ -27,9 +27,9 @@ agreement = function(k){
     # For one population
     if(k==1){
       set.seed(i)
-      maf=runif(p,.05,.45)
-      train=matrix(rbinom(p*n, 1, rep(maf,n)), ncol=p,byrow=TRUE)
-      test=matrix(rbinom(p*n_test, 1, rep(maf,n_test)),ncol=p,byrow=TRUE)
+      maf=runif(p,.05,.45) #minor allele frequency for each snp
+      train=matrix(rbinom(p*n, 1, rep(maf,n)), ncol=p,byrow=TRUE) #creates genotypes for each snp for all observations for training set
+      test=matrix(rbinom(p*n_test, 1, rep(maf,n_test)),ncol=p,byrow=TRUE)  #same as above but for testing set
     }
     
     #For 2 Populations
@@ -68,16 +68,16 @@ agreement = function(k){
       test=rbind(geno.cases, geno.controls)
     }
     
-    causalSNPS=sample(1:p,m)#choose causal snps
-    beta1=rnorm(m,0,1)
-    beta=rep(0,p)
-    beta[causalSNPS]=beta1
-    y=train%*%beta+rnorm(m,0,errsd)
-    y_test=test%*%beta+rnorm(m,0,errsd)
+    causalSNPS=sample(1:p,m) #choose causal snps
+    beta1=rnorm(m,0,1) #generate true coefficient for m causal snps
+    beta=rep(0,p) #create empty beta vector
+    beta[causalSNPS]=beta1 #add betas for causal snps in correct locations in beta vector, non-causal snps are zero
+    y = train%*%beta+rnorm(m,0,errsd) #generate training set true outcomes
+    y_test=test%*%beta+rnorm(m,0,errsd) #generate testing set true outcomes
     
-    betahat=apply(train, 2, regression,y=y)
-    yhat=test%*%betahat
-    corr[i]=cor(yhat,y_test)
+    betahat=apply(train, 2, regression,y=y) #perform slr for each causal snp (if we want to use ridge we would do that here instead)
+    yhat=test%*%betahat  #predicted y's for testing set
+    corr[i]=cor(yhat,y_test) #correlation between true testing set y's and predicted testing set y's
   }
   
   output = as.data.frame(cbind(corr, rep(k, iter)))
