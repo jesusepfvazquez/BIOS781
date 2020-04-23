@@ -62,7 +62,6 @@ PRS_corr <- function(n, m) {
       betahat = apply(train, 2, p_thresh_beta, y = y, pmax = pmax) 
     
       yhat = test %*% betahat # predicted y's for testing set
-      print(c(yhat, y_test))
       corr_mat[j, i] =  cor(yhat, y_test) # correlation between true testing set y's and predicted y'
     }
   }
