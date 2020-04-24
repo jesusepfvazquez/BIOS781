@@ -1,12 +1,12 @@
 rm(list = ls()) # Clean the computing environment
 require(tidyverse)
 
-nmlist = list(c(1000, 10), c(200, 50)) # A pair of (n, m)
+nmlist = list(c(5000, 10000), c(500, 10)) # A pair of (n, m)
 # n: number of obs
 # m: number of causal snps
 p = 10000 # number snps
 mlist = 100 # A list number causal snps
-errsd = 0 # error for generating true y values 0=deterministic model
+# errsd = 0 # error for generating true y values 0=deterministic model
 n_test = 100 # number of observations in test dataset
 iter = 100 # number of iterations 
 plist = c(1, 0.1, 0.01, 10^(-3), 10^(-5), 10^(-8)) # a list of p-value cutoffs
@@ -55,8 +55,8 @@ PRS_corr <- function(n, m) {
       beta1 = rnorm(m, 0, 1) # generate true coefficient for m causal snps
       beta = rep(0, p)# create empty beta vector
       beta[causalSNPS] = beta1 # add betas for causal snps in correct locations in beta vector, non-causal snps are zero
-      y = train %*% beta + rnorm(m, 0, errsd) # generate training set true outcomes
-      y_test = test %*% beta + rnorm(m, 0, errsd) # generate testing set true outcomes
+      y = train %*% beta  # generate training set true outcomes
+      y_test = test %*% beta  # generate testing set true outcomes
     
       # perform linear regression for each snp to predict its effects with p-value thresholding
       betahat = apply(train, 2, p_thresh_beta, y = y, pmax = pmax) 
