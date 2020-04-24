@@ -1,7 +1,11 @@
 rm(list = ls()) # Clean the computing environment
 require(tidyverse)
 
+<<<<<<< HEAD
 nmlist = list(c(5000, 10000), c(500, 10)) # A pair of (n, m)
+=======
+nmlist = list(c(5000, 100), c(500, 10000)) # A pair of (n, m)
+>>>>>>> 7aa8f2540c1da7eb7eb3c855adebc3195cd2e937
 # n: number of obs
 # m: number of causal snps
 p = 10000 # number snps
@@ -55,8 +59,13 @@ PRS_corr <- function(n, m) {
       beta1 = rnorm(m, 0, 1) # generate true coefficient for m causal snps
       beta = rep(0, p)# create empty beta vector
       beta[causalSNPS] = beta1 # add betas for causal snps in correct locations in beta vector, non-causal snps are zero
+<<<<<<< HEAD
       y = train %*% beta  # generate training set true outcomes
       y_test = test %*% beta  # generate testing set true outcomes
+=======
+      y = train %*% beta #+ rnorm(m, 0, errsd) # generate training set true outcomes
+      y_test = test %*% beta #+ rnorm(m, 0, errsd) # generate testing set true outcomes
+>>>>>>> 7aa8f2540c1da7eb7eb3c855adebc3195cd2e937
     
       # perform linear regression for each snp to predict its effects with p-value thresholding
       betahat = apply(train, 2, p_thresh_beta, y = y, pmax = pmax) 
