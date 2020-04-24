@@ -1,12 +1,12 @@
 rm(list = ls()) # Clean the computing environment
 require(tidyverse)
 
-nmlist = list(c(5000, 100), c(500, 10000)) # A pair of (n, m)
+nmlist = list(c(5000, 10000), c(500, 10)) # A pair of (n, m)
 # n: number of obs
 # m: number of causal snps
 p = 10000 # number snps
 mlist = 100 # A list number causal snps
-errsd = 0 # error for generating true y values 0=deterministic model
+# errsd = 0 # error for generating true y values 0=deterministic model
 n_test = 100 # number of observations in test dataset
 iter = 100 # number of iterations 
 plist = c(1, 0.1, 0.01, 10^(-3), 10^(-5), 10^(-8)) # a list of p-value cutoffs
