@@ -1,10 +1,13 @@
 rm(list = ls()) # Clean the computing environment
 require(tidyverse)
+library(bindata)
 
-nmlist = list(c(5000, 10000), c(500, 10)) # A pair of (n, m)
+nmlist = list(c(500, 500,1,5)) # A pair of (n, m, correlated, size)
 # n: number of obs
 # m: number of causal snps
-p = 10000 # number snps
+# correlated: 1 correlated snps or 0 for non-correlated snps
+# size: size of block for correlated snips
+p = 500 # number snps
 mlist = 100 # A list number causal snps
 # errsd = 0 # error for generating true y values 0=deterministic model
 n_test = 100 # number of observations in test dataset
@@ -36,7 +39,7 @@ p_thresh_beta <- function(y, x, pmax) {
 }
 
 ## The loop for calculating the predicted PRS and compare it with the true PRS 
-PRS_corr <- function(n, m, correlated) {
+PRS_corr <- function(n, m, correlated, size) {
   # initiate the final correlation data frame 
   corr_df = tibble(p_cuts = plist)
   corr_mat = matrix(nrow = length(plist), ncol = iter)
@@ -46,6 +49,7 @@ PRS_corr <- function(n, m, correlated) {
       set.seed(i) 
       maf = runif(p,.05,.45) # minor allele frequency for each snp
       
+      # Non-correlated SNIPS
       if (correlated == 0){
         train = matrix(rbinom(p*n, 1, rep(maf, n)) + rbinom(p*n, 1, rep(maf, n)), 
                        ncol = p, 
@@ -55,27 +59,25 @@ PRS_corr <- function(n, m, correlated) {
                       byrow = TRUE) # same as above but for testing set
       }
       
+      # Correlated Snips
       if (correlated == 1){
         
-        size=5
-        locs=seq(1,p,size)
-        blocks=cbind(locs,locs+round(runif(p/size,size-2,size-1)),runif(p/size,.8,.95))
-        sig=matrix(0,nrow=p,ncol=p)
+        locs=seq(1,p,size) #defining blocks
+        blocks=cbind(locs,locs+round(runif(p/size,size-2,size-1)),runif(p/size,.8,.95)) # define correlation between blocks
+        sig=matrix(0,nrow=p,ncol=p) #varinace covariance matrix
         
-        for(i in 1:as.integer(p/size)){
-          sig[blocks[i,1]:blocks[i,2],blocks[i,1]:blocks[i,2]]=blocks[i,3]
+        #create var-cov matrix: off-diagonals
+        for(k in 1:as.integer(p/size)){
+          sig[blocks[k,1]:blocks[k,2],blocks[k,1]:blocks[k,2]]=blocks[k,3]
         }
-    
+        
+        #assing 1 to diagonal values
         diag(sig)=1
+        # creates genotypes for each snp for all observations for training set
+        train = rmvbin(n, margprob = maf, sigma = sig) + rmvbin(n, margprob = maf, sigma = sig) 
+        # same as above but for testing set
+        test = rmvbin(n_test, margprob = maf, sigma = sig) + rmvbin(n_test, margprob = maf, sigma = sig) 
         
-        mysnips = rmvbin(n, margprob = maf, sigma = sig) + rmvbin(n, margprob = maf, sigma = sig)
-        
-        train = matrix(rbinom(p*n, 1, rep(maf, n)) + rbinom(p*n, 1, rep(maf, n)), 
-                       ncol = p, 
-                       byrow = TRUE) # creates genotypes for each snp for all observations for training set
-        test = matrix(rbinom(p*n_test, 1, rep(maf,n_test)) + rbinom(p*n_test, 1, rep(maf,n_test)), 
-                      ncol = p, 
-                      byrow = TRUE) # same as above but for testing set
       }
 
       causalSNPS = sample(1:p, m) # choose which snps are causal snps
@@ -95,15 +97,61 @@ PRS_corr <- function(n, m, correlated) {
   # combine the correlations to the p-value cutoffs
   corr_df = cbind(corr_df, corr_mat)
   # write the csv file
-  write_csv(corr_df, paste0("m = ", m,"_", "n = ", n, "_", "p = ", p, "_", "corr.csv"))
+  write_csv(corr_df, paste0("m = ", m,"_", "n = ", n, "_", "p = ", p,
+                            " correlated = ", correlated, " size = ", size,
+                            "_", "corr.csv"))
 }
 
 ## The loop for executing the function
 for (i in nmlist) {
   n = i[1]
   m = i[2]
-  PRS_corr(n, m)
+  correlated = i[3]
+  size = i[4]
+  PRS_corr(n, m, correlated, size)
 }
+
+
+
+
+
+
+
+
+
+
+## Basic Plot to check work
+library(reshape)
+
+dat_cor = read.csv("m = 500_n = 500_p = 500 correlated = 1 size = 5_corr.csv") %>% t()
+mycolnames = dat_cor[1,]
+dat_cor <- dat_cor[-1,] %>% 
+  as.data.frame() %>% 
+  mutate(Type = as.factor('Correlated'))
+
+colnames(dat_cor) <- c(mycolnames, "Type") 
+dat_cor <- melt(dat_cor,id=c("Type"))
+
+dat_uncor = read.csv("m = 500_n = 500_p = 500 correlated = 0 size = 5_corr.csv") %>% t()
+mycolnames = dat_uncor[1,]
+dat_uncor <- dat_uncor[-1,] %>% 
+  as.data.frame() %>% 
+  mutate(Type = as.factor('Uncorrelated'))
+
+colnames(dat_uncor) <- c(mycolnames, "Type") 
+dat_uncor <- melt(dat_uncor,id=c("Type"))
+
+rbind(dat_cor,dat_uncor) %>%
+  ggplot(aes(x=variable, y = value, color = Type)) +  
+  geom_boxplot() + stat_summary(fun.y=mean, geom="point", shape=23, size=4) +
+  labs(y="Cases", x='', 
+       title = 'Correlation Value per P-Value Treshold',
+       subtitle = 'm = 500 n = 500 p = 500 size = 5 p=500 iterations = 100',
+       xlab = 'P-Value',
+       ylab = 'Correlation')
+
+
+
 
 
 
