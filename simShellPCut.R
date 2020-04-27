@@ -51,6 +51,8 @@ PRS_corr <- function(n, m) {
       test = matrix(rbinom(p*n_test, 1, rep(maf,n_test)) + rbinom(p*n_test, 1, rep(maf,n_test)), 
                     ncol = p, 
                     byrow = TRUE) # same as above but for testing set
+      train=apply(train, 2, function(x) (x-mean(x))/sd(x))
+      test=apply(test, 2, function(x) (x-mean(x))/sd(x))
       causalSNPS = sample(1:p, m) # choose which snps are causal snps
       beta1 = rnorm(m, 0, 1) # generate true coefficient for m causal snps
       beta = rep(0, p)# create empty beta vector
