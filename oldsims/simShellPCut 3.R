@@ -1,7 +1,7 @@
 rm(list = ls()) # Clean the computing environment
 require(tidyverse)
 library(bindata)
-nmlist = list(c(100,25,1,5,1)) # A pair of (n, m, correlated, size, clumping)
+
 # n: number of obs
 # m: number of causal snps
 # correlated: 1 correlated snps or 0 for non-correlated snps
@@ -11,7 +11,7 @@ p = 500 # number snps
 #mlist = 100 # A list number causal snps
 # errsd = 0 # error for generating true y values 0=deterministic model
 n_test = 1000 # number of observations in test dataset
-iter = 100 # number of iterations 
+iter = 200 # number of iterations 
 plist = c(1, 0.1, 0.01, 10^(-3), 10^(-5), 10^(-8)) # a list of p-value cutoffs
 
 ## custom function performing linear regression & returning summary statistics
@@ -120,10 +120,10 @@ PRS_corr <- function(n, m, correlated, size, clumping) {
         yhat = test[,clumping_set] %*% betahat[1,] 
         corr_mat[j, i] =  cor(yhat, y_test)
       }
-
+      
+      print(i)
+      
     }
-    
-    print(i)
   }
   # combine the correlations to the p-value cutoffs
   corr_df = cbind(corr_df, corr_mat)
@@ -133,8 +133,51 @@ PRS_corr <- function(n, m, correlated, size, clumping) {
                             "_", "clumping = ",clumping,  "corr.csv"))
 }
 
-PRS_corr(100,25,1,10,1)
-PRS_corr(100,25,0,0,0)
+PRS_corr(1000,50,1,20,0)
+PRS_corr(1000,50,1,10,0)
+PRS_corr(1000,50,1,5,0)
+
+library(reshape)
+
+dat_cor = read.csv("m = 50_n = 1000_p = 500 correlated = 1 size = 20_clumping = 1corr.csv") %>% t()
+mycolnames = dat_cor[1,]
+dat_cor <- dat_cor[-1,] %>% 
+  as.data.frame() %>% 
+  mutate(Type = as.factor('Correlated, Clumping size 20'))
+colnames(dat_cor) <- c(mycolnames, "Type") 
+dat_cor_20 <- melt(dat_cor,id=c("Type"))
+
+dat_cor = read.csv("m = 50_n = 1000_p = 500 correlated = 1 size = 10_clumping = 1corr.csv") %>% t()
+mycolnames = dat_cor[1,]
+dat_cor <- dat_cor[-1,] %>% 
+  as.data.frame() %>% 
+  mutate(Type = as.factor('Correlated, Clumping size 10'))
+colnames(dat_cor) <- c(mycolnames, "Type") 
+dat_cor_10 <- melt(dat_cor,id=c("Type"))
+
+dat_cor = read.csv("m = 50_n = 1000_p = 500 correlated = 1 size = 5_clumping = 1corr.csv") %>% t()
+mycolnames = dat_cor[1,]
+dat_cor <- dat_cor[-1,] %>% 
+  as.data.frame() %>% 
+  mutate(Type = as.factor('Correlated, Clumping size 5'))
+colnames(dat_cor) <- c(mycolnames, "Type") 
+dat_cor_5 <- melt(dat_cor,id=c("Type"))
+
+dat_uncor = read.csv("m = 50_n = 1000_p = 500 correlated = 0 size = 0_clumping = 0corr.csv") %>% t()
+mycolnames = dat_uncor[1,]
+dat_uncor <- dat_uncor[-1,] %>% 
+  as.data.frame() %>% 
+  mutate(Type = as.factor('Uncorrelated, no Clumping'))
+colnames(dat_uncor) <- c(mycolnames, "Type") 
+dat_uncor <- melt(dat_uncor,id=c("Type"))
+
+rbind(dat_uncor,dat_cor_5, dat_cor_10, dat_cor_20) %>%
+  ggplot(aes(x=variable, y = value, color = Type)) +  
+  geom_boxplot() + stat_summary(fun.y=mean, geom="point", shape=23, size=4) +
+  labs(title = 'Correlation Value per P-Value Treshold',
+       subtitle = 'm = 50 n = 1000 p = 500 size = 10 iterations = 200',
+       x = 'P-Value',
+       y = 'Correlation')
 
 
 
