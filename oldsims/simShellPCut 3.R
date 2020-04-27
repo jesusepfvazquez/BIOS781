@@ -1,14 +1,13 @@
 rm(list = ls()) # Clean the computing environment
 require(tidyverse)
 library(bindata)
-
-nmlist = list(c(1000,50,1,5,1), c(1000, 50,0,5,1)) # A pair of (n, m, correlated, size, clumping)
+nmlist = list(c(100,25,1,5,1)) # A pair of (n, m, correlated, size, clumping)
 # n: number of obs
 # m: number of causal snps
 # correlated: 1 correlated snps or 0 for non-correlated snps
 # size: size of block for correlated snips
 # clumping: 1 cumpling 0 no cumpling
-p = 1000 # number snps
+p = 500 # number snps
 #mlist = 100 # A list number causal snps
 # errsd = 0 # error for generating true y values 0=deterministic model
 n_test = 1000 # number of observations in test dataset
@@ -38,6 +37,13 @@ p_thresh_beta <- function(y, x, pmax) {
    betahat = lm[["betahat"]] * (lm[["pval"]] < pmax)
    pvalues = lm[["pval"]] * (lm[["pval"]] < pmax)
    return(cbind(betahat,pvalues))
+}
+
+p_thresh_beta_clumping <- function(y, x, pmax) {
+  lm = regression(y = y, x = x)
+  betahat = lm[["betahat"]]
+  pvalues = lm[["pval"]]
+  return(cbind(betahat,pvalues))
 }
 
 ## The loop for calculating the predicted PRS and compare it with the true PRS 
@@ -81,29 +87,33 @@ PRS_corr <- function(n, m, correlated, size, clumping) {
         test = rmvbin(n_test, margprob = maf, sigma = sig) + rmvbin(n_test, margprob = maf, sigma = sig) 
         
       }
-
+      
       causalSNPS = sample(1:p, m) # choose which snps are causal snps
       beta1 = rnorm(m, 0, 1) # generate true coefficient for m causal snps
       beta = rep(0, p)# create empty beta vector
       beta[causalSNPS] = beta1 # add betas for causal snps in correct locations in beta vector, non-causal snps are zero
       y = train %*% beta #+ rnorm(m, 0, errsd) # generate training set true outcomes
       y_test = test %*% beta #+ rnorm(m, 0, errsd) # generate testing set true outcomes
-      # perform linear regression for each snp to predict its effects with p-value thresholding
-      betahat = apply(train, 2, p_thresh_beta, y = y, pmax = pmax)
-      
+
       if (clumping == 0){
+        # perform linear regression for each snp to predict its effects with p-value thresholding
+        betahat = apply(train, 2, p_thresh_beta, y = y, pmax = pmax)
         yhat = test %*% betahat[1,] # predicted y's for testing set
         corr_mat[j, i] =  cor(yhat, y_test) # correlation between true testing set y's and predicted y'
       }
       
-      #clumping, selecting lowest p-value per bin then redoing the analysis
+      #clumping, selecting lowest p-value per bin before tresholding then redoing the analysis
       if (clumping == 1){
+        # perform linear regression for each snp to predict its effects without p-value thresholding initially
+        betahat = apply(train, 2, p_thresh_beta_clumping, y = y, pmax = pmax)
         # need to retrieve location of min p-value per block
         clumping_set = rep(0,dim(blocks)[1])
         for(tt in 1:dim(blocks)[1]){
-          clumping_set[tt] <- which(betahat[blocks[tt,1]:blocks[tt,2],2] == min(betahat[blocks[tt,1]:blocks[tt,2],2])) + blocks[tt,1] -1
+          clumping_set[tt] <- which(betahat[2,blocks[tt,1]:blocks[tt,2]] == 
+                                       min(betahat[2,blocks[tt,1]:blocks[tt,2]])) + blocks[tt,1] -1
         } 
-        # Recalculating Analysis using only selected SNPS from clumping
+        
+        # Recalculating Analysis using only selected SNPS from clumping, now with p-value tresholding 
         y = train[,clumping_set] %*% beta[clumping_set] 
         y_test = test[,clumping_set] %*% beta[clumping_set] 
         betahat = apply(train[,clumping_set], 2, p_thresh_beta, y = y, pmax = pmax)
@@ -112,6 +122,8 @@ PRS_corr <- function(n, m, correlated, size, clumping) {
       }
 
     }
+    
+    print(i)
   }
   # combine the correlations to the p-value cutoffs
   corr_df = cbind(corr_df, corr_mat)
@@ -121,41 +133,9 @@ PRS_corr <- function(n, m, correlated, size, clumping) {
                             "_", "clumping = ",clumping,  "corr.csv"))
 }
 
-## The loop for executing the function
-for (i in nmlist) {
-  n = i[1]
-  m = i[2]
-  correlated = i[3]
-  size = i[4]
-  clumping = i[5]
-  PRS_corr(n, m, correlated, size, clumping)
-}
+PRS_corr(100,25,1,10,1)
+PRS_corr(100,25,0,0,0)
 
-## Basic Plot to check work
-# library(reshape)
-# 
-# dat_cor = read.csv("m = 500_n = 500_p = 500 correlated = 1 size = 5_corr.csv") %>% t()
-# mycolnames = dat_cor[1,]
-# dat_cor <- dat_cor[-1,] %>% 
-#   as.data.frame() %>% 
-#   mutate(Type = as.factor('Correlated'))
-# 
-# colnames(dat_cor) <- c(mycolnames, "Type") 
-# dat_cor <- melt(dat_cor,id=c("Type"))
-# 
-# dat_uncor = read.csv("m = 500_n = 500_p = 500 correlated = 0 size = 5_corr.csv") %>% t()
-# mycolnames = dat_uncor[1,]
-# dat_uncor <- dat_uncor[-1,] %>% 
-#   as.data.frame() %>% 
-#   mutate(Type = as.factor('Uncorrelated'))
-# 
-# colnames(dat_uncor) <- c(mycolnames, "Type") 
-# dat_uncor <- melt(dat_uncor,id=c("Type"))
-# 
-# rbind(dat_cor,dat_uncor) %>%
-#   ggplot(aes(x=variable, y = value, color = Type)) +  
-#   geom_boxplot() + stat_summary(fun.y=mean, geom="point", shape=23, size=4) +
-#   labs(title = 'Correlation Value per P-Value Treshold',
-#        subtitle = 'm = 500 n = 500 p = 500 size = 5 p=500 iterations = 100',
-#        x = 'P-Value',
-#        y = 'Correlation')
+
+
+
