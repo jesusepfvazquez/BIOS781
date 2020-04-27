@@ -136,42 +136,71 @@ PRS_corr <- function(n, m, correlated, size, clumping) {
 PRS_corr(1000,50,1,20,0)
 PRS_corr(1000,50,1,10,0)
 PRS_corr(1000,50,1,5,0)
+PRS_corr(1000,50,1,20,1)
+PRS_corr(1000,50,1,10,1)
+PRS_corr(1000,50,1,5,1)
+PRS_corr(1000,50,0,0,0)
 
-library(reshape)
+library(reshape) 
+
+dat_cor = read.csv("m = 50_n = 1000_p = 500 correlated = 1 size = 20_clumping = 0corr.csv") %>% t()
+mycolnames = dat_cor[1,]
+dat_cor <- dat_cor[-1,] %>% 
+  as.data.frame() %>% 
+  mutate(Type = as.factor('Correlated size 20'))
+colnames(dat_cor) <- c(mycolnames, "Type") 
+dat_cor_20 <- melt(dat_cor,id=c("Type"))
+
+dat_cor = read.csv("m = 50_n = 1000_p = 500 correlated = 1 size = 10_clumping = 0corr.csv") %>% t()
+mycolnames = dat_cor[1,]
+dat_cor <- dat_cor[-1,] %>% 
+  as.data.frame() %>% 
+  mutate(Type = as.factor('Correlated size 10'))
+colnames(dat_cor) <- c(mycolnames, "Type") 
+dat_cor_10 <- melt(dat_cor,id=c("Type"))
+
+dat_cor = read.csv("m = 50_n = 1000_p = 500 correlated = 1 size = 5_clumping = 0corr.csv") %>% t()
+mycolnames = dat_cor[1,]
+dat_cor <- dat_cor[-1,] %>% 
+  as.data.frame() %>% 
+  mutate(Type = as.factor('Correlated size 5'))
+colnames(dat_cor) <- c(mycolnames, "Type") 
+dat_cor_5 <- melt(dat_cor,id=c("Type"))
 
 dat_cor = read.csv("m = 50_n = 1000_p = 500 correlated = 1 size = 20_clumping = 1corr.csv") %>% t()
 mycolnames = dat_cor[1,]
 dat_cor <- dat_cor[-1,] %>% 
   as.data.frame() %>% 
-  mutate(Type = as.factor('Correlated, Clumping size 20'))
+  mutate(Type = as.factor('Correlated & Clumping, size 20'))
 colnames(dat_cor) <- c(mycolnames, "Type") 
-dat_cor_20 <- melt(dat_cor,id=c("Type"))
+dat_cor_clump_20 <- melt(dat_cor,id=c("Type"))
 
 dat_cor = read.csv("m = 50_n = 1000_p = 500 correlated = 1 size = 10_clumping = 1corr.csv") %>% t()
 mycolnames = dat_cor[1,]
 dat_cor <- dat_cor[-1,] %>% 
   as.data.frame() %>% 
-  mutate(Type = as.factor('Correlated, Clumping size 10'))
+  mutate(Type = as.factor('Correlated & Clumping, size 10'))
 colnames(dat_cor) <- c(mycolnames, "Type") 
-dat_cor_10 <- melt(dat_cor,id=c("Type"))
+dat_cor_clump_10 <- melt(dat_cor,id=c("Type"))
 
 dat_cor = read.csv("m = 50_n = 1000_p = 500 correlated = 1 size = 5_clumping = 1corr.csv") %>% t()
 mycolnames = dat_cor[1,]
 dat_cor <- dat_cor[-1,] %>% 
   as.data.frame() %>% 
-  mutate(Type = as.factor('Correlated, Clumping size 5'))
+  mutate(Type = as.factor('Correlated & Clumping, size 5'))
 colnames(dat_cor) <- c(mycolnames, "Type") 
-dat_cor_5 <- melt(dat_cor,id=c("Type"))
+dat_cor_clump_5 <- melt(dat_cor,id=c("Type"))
 
 dat_uncor = read.csv("m = 50_n = 1000_p = 500 correlated = 0 size = 0_clumping = 0corr.csv") %>% t()
 mycolnames = dat_uncor[1,]
 dat_uncor <- dat_uncor[-1,] %>% 
   as.data.frame() %>% 
-  mutate(Type = as.factor('Uncorrelated, no Clumping'))
+  mutate(Type = as.factor('Uncorrelated'))
 colnames(dat_uncor) <- c(mycolnames, "Type") 
 dat_uncor <- melt(dat_uncor,id=c("Type"))
 
-rbind(dat_uncor,dat_cor_5, dat_cor_10, dat_cor_20) %>%
+library(ggplot2)
+rbind(dat_uncor, dat_cor_5, dat_cor_clump_5, dat_cor_10, dat_cor_clump_10, dat_cor_20, dat_cor_clump_20) %>%
   ggplot(aes(x=variable, y = value, color = Type)) +  
   geom_boxplot() + stat_summary(fun.y=mean, geom="point", shape=23, size=4) +
   labs(title = 'Correlation Value per P-Value Treshold',
@@ -180,5 +209,18 @@ rbind(dat_uncor,dat_cor_5, dat_cor_10, dat_cor_20) %>%
        y = 'Correlation')
 
 
+# Other
+PRS_corr(500,10,1,10,1)
+PRS_corr(1000,10,1,10,1)
+PRS_corr(5000,10,1,10,1)
+PRS_corr(10000,10,1,10,1)
 
+PRS_corr(500,100,1,10,1)
+PRS_corr(1000,100,1,10,1)
+PRS_corr(5000,100,1,10,1)
+PRS_corr(10000,100,1,10,1)
 
+PRS_corr(500,10000,1,10,1)
+PRS_corr(1000,10000,1,10,1)
+PRS_corr(5000,10000,1,10,1)
+PRS_corr(10000,10000,1,10,1)
