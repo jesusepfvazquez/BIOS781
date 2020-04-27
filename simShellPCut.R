@@ -1,5 +1,6 @@
 rm(list = ls()) # Clean the computing environment
 require(tidyverse)
+set.seed(12)
 
 nmlist = list(c(5000, 10000), c(500, 10)) # A pair of (n, m)
 # n: number of obs
@@ -43,7 +44,6 @@ PRS_corr <- function(n, m) {
   for (j in 1:length(plist)) {
     pmax = plist[j] # The p-cutoff
     for(i in 1:iter){
-      set.seed(i) 
       maf = runif(p,.05,.45) # minor allele frequency for each snp
       train = matrix(rbinom(p*n, 1, rep(maf, n)) + rbinom(p*n, 1, rep(maf, n)), 
                      ncol = p, 
