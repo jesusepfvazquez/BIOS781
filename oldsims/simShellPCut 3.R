@@ -2,7 +2,7 @@ rm(list = ls()) # Clean the computing environment
 require(tidyverse)
 library(bindata)
 
-nmlist = list(c(1000,50,1,5,0), c(1000, 50,0,5,0),c(1000,50,1,5,1), c(1000, 50,0,5,1)) # A pair of (n, m, correlated, size, clumping)
+nmlist = list(c(1000,50,1,5,1), c(1000, 50,0,5,1)) # A pair of (n, m, correlated, size, clumping)
 # n: number of obs
 # m: number of causal snps
 # correlated: 1 correlated snps or 0 for non-correlated snps

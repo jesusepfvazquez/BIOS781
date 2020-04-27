@@ -33,9 +33,9 @@ regression <- function(y, x){
 
 ## custom function to perform p-value thresholding on beta
 p_thresh_beta <- function(y, x, pmax) {
-   lm = regression(y = y, x = x)
-   betahat = lm[["betahat"]] * (lm[["pval"]] < pmax)
-   return(betahat)
+  lm = regression(y = y, x = x)
+  betahat = lm[["betahat"]] * (lm[["pval"]] < pmax)
+  return(betahat)
 }
 
 ## The loop for calculating the predicted PRS and compare it with the true PRS 
@@ -79,17 +79,17 @@ PRS_corr <- function(n, m, correlated, size) {
         test = rmvbin(n_test, margprob = maf, sigma = sig) + rmvbin(n_test, margprob = maf, sigma = sig) 
         
       }
-
+      
       causalSNPS = sample(1:p, m) # choose which snps are causal snps
       beta1 = rnorm(m, 0, 1) # generate true coefficient for m causal snps
       beta = rep(0, p)# create empty beta vector
       beta[causalSNPS] = beta1 # add betas for causal snps in correct locations in beta vector, non-causal snps are zero
       y = train %*% beta #+ rnorm(m, 0, errsd) # generate training set true outcomes
       y_test = test %*% beta #+ rnorm(m, 0, errsd) # generate testing set true outcomes
-    
+      
       # perform linear regression for each snp to predict its effects with p-value thresholding
       betahat = apply(train, 2, p_thresh_beta, y = y, pmax = pmax) 
-    
+      
       yhat = test %*% betahat # predicted y's for testing set
       corr_mat[j, i] =  cor(yhat, y_test) # correlation between true testing set y's and predicted y'
     }
@@ -110,15 +110,6 @@ for (i in nmlist) {
   size = i[4]
   PRS_corr(n, m, correlated, size)
 }
-
-
-
-
-
-
-
-
-
 
 ## Basic Plot to check work
 library(reshape)
@@ -149,9 +140,3 @@ rbind(dat_cor,dat_uncor) %>%
        subtitle = 'm = 500 n = 500 p = 500 size = 5 p=500 iterations = 100',
        xlab = 'P-Value',
        ylab = 'Correlation')
-
-
-
-
-
-
