@@ -7,11 +7,11 @@ library(bindata)
 # correlated: 1 correlated snps or 0 for non-correlated snps
 # size: size of block for correlated snips
 # clumping: 1 cumpling 0 no cumpling
-p = 500 # number snps
+p = 1000 # number snps
 #mlist = 100 # A list number causal snps
 # errsd = 0 # error for generating true y values 0=deterministic model
 n_test = 1000 # number of observations in test dataset
-iter = 200 # number of iterations 
+iter = 100 # number of iterations 
 plist = c(1, 0.1, 0.01, 10^(-3), 10^(-5), 10^(-8)) # a list of p-value cutoffs
 
 ## custom function performing linear regression & returning summary statistics
@@ -88,6 +88,8 @@ PRS_corr <- function(n, m, correlated, size, clumping) {
         
       }
       
+      train=apply(train, 2, function(x) (x-mean(x))/sd(x))
+      test=apply(test, 2, function(x) (x-mean(x))/sd(x))
       causalSNPS = sample(1:p, m) # choose which snps are causal snps
       beta1 = rnorm(m, 0, 1) # generate true coefficient for m causal snps
       beta = rep(0, p)# create empty beta vector
@@ -120,10 +122,8 @@ PRS_corr <- function(n, m, correlated, size, clumping) {
         yhat = test[,clumping_set] %*% betahat[1,] 
         corr_mat[j, i] =  cor(yhat, y_test)
       }
-      
-      print(i)
-      
     }
+    print(pmax)
   }
   # combine the correlations to the p-value cutoffs
   corr_df = cbind(corr_df, corr_mat)
@@ -133,13 +133,11 @@ PRS_corr <- function(n, m, correlated, size, clumping) {
                             "_", "clumping = ",clumping,  "corr.csv"))
 }
 
-PRS_corr(1000,50,1,20,0)
-PRS_corr(1000,50,1,10,0)
-PRS_corr(1000,50,1,5,0)
-PRS_corr(1000,50,1,20,1)
-PRS_corr(1000,50,1,10,1)
-PRS_corr(1000,50,1,5,1)
-PRS_corr(1000,50,0,0,0)
+PRS_corr(1000,100,1,20,0)
+PRS_corr(1000,100,1,5,0)
+PRS_corr(1000,100,1,20,1)
+PRS_corr(1000,100,1,5,1)
+PRS_corr(1000,100,0,0,0)
 
 library(reshape) 
 
@@ -199,15 +197,27 @@ dat_uncor <- dat_uncor[-1,] %>%
 colnames(dat_uncor) <- c(mycolnames, "Type") 
 dat_uncor <- melt(dat_uncor,id=c("Type"))
 
-library(ggplot2)
 rbind(dat_uncor, dat_cor_5, dat_cor_clump_5, dat_cor_10, dat_cor_clump_10, dat_cor_20, dat_cor_clump_20) %>%
   ggplot(aes(x=variable, y = value, color = Type)) +  
   geom_boxplot() + stat_summary(fun.y=mean, geom="point", shape=23, size=4) +
   labs(title = 'Correlation Value per P-Value Treshold',
-       subtitle = 'm = 50 n = 1000 p = 500 size = 10 iterations = 200',
+       subtitle = 'm = 50 n = 1000 p = 500 iterations = 200',
        x = 'P-Value',
        y = 'Correlation')
 
+# Plot of means
+
+a = rbind(dat_uncor, dat_cor_5, dat_cor_clump_5, dat_cor_10, dat_cor_clump_10, dat_cor_20, dat_cor_clump_20) 
+mymeans = aggregate(a$value, list(a$Type, a$variable), mean)  
+
+mymeans %>%
+  ggplot(aes(x=Group.2, y = x, fill = Group.1)) + 
+  geom_bar(stat="identity", position=position_dodge()) +
+  geom_text(aes(label=round(x,2)), size=3.5) +
+  labs(title = 'Correlation Value per P-Value Treshold',
+       subtitle = 'm = 50 n = 1000 p = 500 iterations = 200',
+       x = 'P-Value',
+       y = 'Correlation')
 
 # Other
 PRS_corr(500,10,1,10,1)
@@ -220,7 +230,7 @@ PRS_corr(1000,100,1,10,1)
 PRS_corr(5000,100,1,10,1)
 PRS_corr(10000,100,1,10,1)
 
-PRS_corr(500,10000,1,10,1)
-PRS_corr(1000,10000,1,10,1)
-PRS_corr(5000,10000,1,10,1)
-PRS_corr(10000,10000,1,10,1)
+PRS_corr(500,1000,1,10,1)
+PRS_corr(1000,1000,1,10,1)
+PRS_corr(5000,1000,1,10,1)
+PRS_corr(10000,1000,1,10,1)
