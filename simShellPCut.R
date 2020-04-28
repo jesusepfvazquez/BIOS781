@@ -1,5 +1,6 @@
 rm(list = ls()) # Clean the computing environment
 require(tidyverse)
+set.seed(12)
 
 nmlist = list(c(5000, 10000), c(500, 10)) # A pair of (n, m)
 # n: number of obs
@@ -30,9 +31,9 @@ regression <- function(y, x){
 
 ## custom function to perform p-value thresholding on beta
 p_thresh_beta <- function(y, x, pmax) {
-   lm = regression(y = y, x = x)
-   betahat = lm[["betahat"]] * (lm[["pval"]] < pmax)
-   return(betahat)
+  lm = regression(y = y, x = x)
+  betahat = lm[["betahat"]] * (lm[["pval"]] < pmax)
+  return(betahat)
 }
 
 ## The loop for calculating the predicted PRS and compare it with the true PRS 
@@ -43,7 +44,6 @@ PRS_corr <- function(n, m) {
   for (j in 1:length(plist)) {
     pmax = plist[j] # The p-cutoff
     for(i in 1:iter){
-      set.seed(i) 
       maf = runif(p,.05,.45) # minor allele frequency for each snp
       train = matrix(rbinom(p*n, 1, rep(maf, n)) + rbinom(p*n, 1, rep(maf, n)), 
                      ncol = p, 
@@ -51,16 +51,18 @@ PRS_corr <- function(n, m) {
       test = matrix(rbinom(p*n_test, 1, rep(maf,n_test)) + rbinom(p*n_test, 1, rep(maf,n_test)), 
                     ncol = p, 
                     byrow = TRUE) # same as above but for testing set
+      train=apply(train, 2, function(x) (x-mean(x))/sd(x))
+      test=apply(test, 2, function(x) (x-mean(x))/sd(x))
       causalSNPS = sample(1:p, m) # choose which snps are causal snps
       beta1 = rnorm(m, 0, 1) # generate true coefficient for m causal snps
       beta = rep(0, p)# create empty beta vector
       beta[causalSNPS] = beta1 # add betas for causal snps in correct locations in beta vector, non-causal snps are zero
       y = train %*% beta #+ rnorm(m, 0, errsd) # generate training set true outcomes
       y_test = test %*% beta #+ rnorm(m, 0, errsd) # generate testing set true outcomes
-    
+      
       # perform linear regression for each snp to predict its effects with p-value thresholding
       betahat = apply(train, 2, p_thresh_beta, y = y, pmax = pmax) 
-    
+      
       yhat = test %*% betahat # predicted y's for testing set
       corr_mat[j, i] =  cor(yhat, y_test) # correlation between true testing set y's and predicted y'
     }
